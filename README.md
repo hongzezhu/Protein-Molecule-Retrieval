@@ -11,24 +11,24 @@ What this repo does
 
 Setup
 
-1.Create an environment (example: Python 3.10)
+# 1.Create an environment (example: Python 3.10)
 
 conda create -n pmretrieval python=3.10 -y
 conda activate pmretrieval
 
-2.Install dependencies
+# 2.Install dependencies
 
-# Install PyTorch first (choose the build that matches your CUDA)
+Install PyTorch first (choose the build that matches your CUDA)
 Example (CUDA 12.1):
 pip install torch --index-url https://download.pytorch.org/whl/cu121
 
-# Core packages
+Core packages
 pip install pytorch-lightning transformers pandas numpy pyyaml tqdm easydict lmdb requests
 
-# Optional (demo)
+Optional (demo)
 pip install gradio
 
-# Data
+# 3.Data
 This project can be built on the BindingDB dataset hosted on Hugging Face:
 https://huggingface.co/datasets/vladak/bindingdb
 
@@ -36,7 +36,7 @@ The pipeline expects protein–SMILES pairs and writes them into LMDB for traini
 
  Download BindingDB and export to Parquet
 
-3.Build LMDB:
+Build LMDB:
 
 python dataset/prepare_bindingdb_pairs.py   --data_dir /path/to/bindingdb_parquets   --output LMDB/BindingDB   --split_ratios 0.9 0.05 0.05
 
@@ -50,7 +50,7 @@ Notes:
 - Column names differ across BindingDB releases and preprocessors. The script attempts to map common names (SMILES, target sequence, UniProt ID, etc.).
 - If your columns are non-standard, edit the mapping logic in dataset/prepare_bindingdb_pairs.py.
 
-4.Training
+# 4.Training
 
 Edit LMDB paths in dual_tower_baseline.yaml, then run:
 
@@ -62,7 +62,7 @@ Key fields in dual_tower_baseline.yaml:
 - dataset.kwargs.max_protein_length, dataset.kwargs.max_molecular_length
 - phased_training.enable (optional, two-stage training)
 
-5.Evaluation
+# 5.Evaluation
 
 Set the checkpoint path and test LMDB path in evaluate_grouped.py, then run:
 
@@ -74,7 +74,7 @@ baseline:
 
 python evaluate_random_baseline.py
 
-6.Gradio demo
+# 6.Gradio demo
 
 Set CHECKPOINT_PATH in app.py, then run:
 
