@@ -240,20 +240,37 @@ class DualTowerRecommendationModel(pl.LightningModule):
         
         loss = (loss_p2m + loss_m2p) / 2
         
-        # 5. Logging & Debug
-        if self.global_step % 10 == 0:
-            # 统计一下平均每个样本有多少个正样本（除了它自己）
-            avg_positives = (targets.sum(dim=1) - 1).mean().item()
-            with torch.no_grad():
-                # 简单的准确率估算：看最大的 logit 是否落在正样本集合内
-                # P2M Accuracy
-                max_idx_p2m = sim_p2m.argmax(dim=1) # (Batch,)
-                # gather 获取 max_idx 对应的 target 值 (是1就是对，0就是错)
-                acc_p2m = torch.gather(targets, 1, max_idx_p2m.unsqueeze(1)).mean().item()
+        # # 5. Logging & Debug
+        # if self.global_step % 10 == 0:
+        #     # 统计一下平均每个样本有多少个正样本（除了它自己）
+        #     avg_positives = (targets.sum(dim=1) - 1).mean().item()
+        #     with torch.no_grad():
+        #         # 简单的准确率估算：看最大的 logit 是否落在正样本集合内
+        #         # P2M Accuracy
+        #         max_idx_p2m = sim_p2m.argmax(dim=1) # (Batch,)
+        #         # gather 获取 max_idx 对应的 target 值 (是1就是对，0就是错)
+        #         acc_p2m = torch.gather(targets, 1, max_idx_p2m.unsqueeze(1)).mean().item()
                 
-            print(f"\n[Step {self.global_step}] Loss: {loss:.4f} | Avg Dupes per batch: {avg_positives:.1f} | Batch Acc: {acc_p2m:.2%}")
+        #     print(f"\n[Step {self.global_step}] Loss: {loss:.4f} | Avg Dupes per batch: {avg_positives:.1f} | Batch Acc: {acc_p2m:.2%}")
 
+
+        # 🟢 [新增 1]：在这里计算准确率 (移出 if 块，确保每一步都算)
+        # 注意：不要加 .item()，保持 Tensor 格式让 self.log 自动处理平均值
+        with torch.no_grad():
+            max_idx_p2m = sim_p2m.argmax(dim=1)
+            acc_p2m = torch.gather(targets, 1, max_idx_p2m.unsqueeze(1)).mean()
+
+        # 5. Logging & Debug (保持原有的打印功能)
+        if self.global_step % 10 == 0:
+            avg_positives = (targets.sum(dim=1) - 1).mean().item()
+            # 这里直接打印上面算好的 acc_p2m
+            print(f"\n[Step {self.global_step}] Loss: {loss:.4f} | Avg Dupes per batch: {avg_positives:.1f} | Batch Acc: {acc_p2m.item():.2%}")
+
+        # 🟢 [新增 2]：正式记录到日志 (这样 test 结束时才会显示 test_acc)
         self.log(f"{stage}_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+        self.log(f"{stage}_acc", acc_p2m, on_step=False, on_epoch=True, prog_bar=True)
+
+        # self.log(f"{stage}_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
 
     def training_step(self, batch, batch_idx):
@@ -271,6 +288,14 @@ class DualTowerRecommendationModel(pl.LightningModule):
         }
         outputs = self.forward(**inputs)
         return self.loss_func('valid', outputs)
+
+    def test_step(self, batch, batch_idx):
+        inputs = {
+            "protein_inputs": {"input_ids": batch["protein_input_ids"], "attention_mask": batch["protein_attention_mask"]},
+            "molecular_inputs": {"molecule_input_ids": batch["molecule_input_ids"], "molecule_attention_mask": batch["molecule_attention_mask"]}
+        }
+        outputs = self.forward(**inputs)
+        return self.loss_func('test', outputs)
 
     def configure_optimizers(self):
         params = [p for p in self.parameters() if p.requires_grad]
