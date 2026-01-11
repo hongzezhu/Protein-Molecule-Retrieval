@@ -81,3 +81,8 @@ Set CHECKPOINT_PATH in app.py, then run:
 python app.py
 
 Default port: 7860.
+
+# Contributors
+Hongze Zhu, Haoyuan Yue,and Ruoyu Wang
+zhuhongze@westlake.edu.cn | yuehaoyuan@westlake.edu.cn | wangruoyu@westlake.edu.cn 
+
