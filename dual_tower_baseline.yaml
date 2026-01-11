@@ -1,0 +1,104 @@
+
+# Left Tower: SaProt 650M (Frozen)
+# Right Tower: Transformer
+
+setting:
+  seed: 20000812
+  os_environ:
+    WANDB_API_KEY: ~
+    WANDB_RUN_ID: ~
+    CUDA_VISIBLE_DEVICES: 4,5,6,7
+    MASTER_ADDR: localhost
+    MASTER_PORT: 12315
+    WORLD_SIZE: 1
+    NODE_RANK: 0
+  wandb_config:
+    project: ProteinMoleculeRecommendation
+    name: DualTower_Overfit_Run
+
+model:
+  model_py_path: dual_tower_recommendation_model
+  kwargs:
+    # --- 模型参数 ---
+    protein_config_path: westlake-repl/SaProt_650M_AF2
+    protein_load_pretrained: True
+    foldseek_path: bin/foldseek
+    plddt_threshold: 70.0
+    
+    molecular_vocab_size: 128
+    molecular_embed_dim: 512    
+    molecular_num_layers: 4     
+    molecular_num_heads: 8      
+    molecular_ffn_dim: null     
+    molecular_max_length: 512
+    molecular_dropout: 0.1      
+    
+    temperature: 0.1            
+    embedding_dim: 1024         
+    
+    # --- 🟢 关键修改：缩进到 kwargs 内部 ---
+    lr_scheduler_kwargs:
+      last_epoch: -1
+      init_lr: 0.0
+      max_lr: 1.0e-4        # 保持 1e-3 以打破坍缩
+      final_lr: 1.0e-6
+      warmup_steps: 2
+      start_decay_after_n_steps: 100
+      end_decay_after_n_steps: 2000
+      on_use: true
+
+    optimizer_kwargs:
+      betas: [0.9, 0.98]
+      weight_decay: 0.1
+
+  save_path: weights/Recommendation/DualTower_Fixed.pt
+
+dataset:
+  dataset_py_path: recommendation/protein_molecule_pairs_dataset
+  dataloader_kwargs:
+    batch_size: 128
+    num_workers: 16
+
+  train_lmdb: LMDB/BindingDB_Filtered/train
+  valid_lmdb: LMDB/BindingDB_Filtered/valid
+  test_lmdb: LMDB/BindingDB_Filtered/test
+  
+  kwargs:
+    protein_tokenizer: westlake-repl/SaProt_650M_AF2
+    molecular_vocab_size: 256
+    max_protein_length: 1024
+    max_molecular_length: 512
+
+# Phased Training Configuration 
+phased_training:
+  enable: true
+  phase1_epochs: 0   #  Phase 1 (Projection Warmup)
+  phase2_epochs: 20  #  Phase 2 (Molecule Training)
+  # Total epochs = 20
+
+Trainer:
+  max_epochs: 2000     
+  log_every_n_steps: 1
+  strategy: "auto"
+  # strategy:
+  #   find_unused_parameters: False
+  logger: True
+  enable_checkpointing: true
+  val_check_interval: 1.0
+  check_val_every_n_epoch: 1
+  accelerator: gpu
+  devices: 4
+  num_nodes: 1
+  accumulate_grad_batches: 2
+  precision: 16
+  num_sanity_val_steps: 0
+  gradient_clip_val: 1.0
+  gradient_clip_algorithm: norm
+  callbacks:
+    - class_path: pytorch_lightning.callbacks.ModelCheckpoint
+      init_args:
+        monitor: valid_loss
+        mode: min
+        save_top_k: 1
+        filename: 'best-checkpoint-{epoch:02d}-{valid_loss:.2f}'
+        save_last: true
