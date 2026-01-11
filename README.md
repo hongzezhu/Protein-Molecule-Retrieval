@@ -87,5 +87,5 @@ Default port: 7860.
 
 # Contributors
 Hongze Zhu, Haoyuan Yue,and Ruoyu Wang
-zhuhongze@westlake.edu.cn | yuehaoyuan@westlake.edu.cn | wangruoyu@westlake.edu.cn 
+zhuhongze@westlake.edu.cn | yuehaoyuan@westlake.edu.cn | wangruoyu71@westlake.edu.cn 
 
