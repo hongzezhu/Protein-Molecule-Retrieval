@@ -2,7 +2,7 @@ from transformers import AutoTokenizer
 import os
 
 # 1. 加载 Tokenizer
-# 确保这个路径是你下载好的模型路径
+
 model_path = "westlake-repl/SaProt_650M_AF2" 
 print(f">>> Loading tokenizer from {model_path}...")
 
