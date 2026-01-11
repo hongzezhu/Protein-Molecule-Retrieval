@@ -1,4 +1,4 @@
-Protein–Molecule Retrieval
+# Protein–Molecule Retrieval
 
 Dual-tower retrieval between proteins and small molecules (SaProt protein encoder + SMILES Transformer).
 This repository supports training, bidirectional retrieval evaluation, and an optional Gradio demo.
